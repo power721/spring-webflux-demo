@@ -8,6 +8,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,8 +28,13 @@ class UserControllerTest {
         dto.setName("test");
         dto.setEmail("email");
         ExecutorService executorService = Executors.newFixedThreadPool(100);
-        for (int i = 0; i < 1000; ++i) {
+        for (int i = 0; i < 100; ++i) {
             executorService.submit(() -> {
+                try {
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(10));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 client.post()
                         .uri("/users")
                         .bodyValue(dto)

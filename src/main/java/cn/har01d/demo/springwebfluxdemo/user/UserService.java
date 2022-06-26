@@ -16,34 +16,28 @@ public class UserService {
     }
 
     public Mono<User> create(UserDto dto) {
-        if (lockManager.tryLock(dto.getName())) {
-            return Mono.just(dto.getName())
-                    .doOnNext(name -> {
-                        if (userRepository.existByName(dto.getName())) {
-                            throw new IllegalArgumentException("user name exist");
-                        }
-                    }).flatMap(name -> {
-                        User user = new User();
-                        user.setName(dto.getName());
-                        user.setEmail(dto.getEmail());
-                        return userRepository.save(user);
-                    })
-                    .doOnTerminate(() -> lockManager.releaseLock(dto.getName()));
-        } else {
-            throw new IllegalStateException("Conflict");
-        }
+        LockManager.Lock lock = lockManager.tryLock(dto.getName());
+        return Mono.just(dto.getName())
+                .doOnNext(name -> {
+                    if (userRepository.existByName(dto.getName())) {
+                        throw new IllegalArgumentException("user name exist");
+                    }
+                }).flatMap(name -> {
+                    User user = new User();
+                    user.setName(dto.getName());
+                    user.setEmail(dto.getEmail());
+                    return userRepository.save(user);
+                })
+                .doOnTerminate(lock::release);
     }
 
     public Mono<User> update(Integer id, UserDto dto) {
-        if (lockManager.tryLock(dto.getName())) {
-            return userRepository.findById(id).flatMap(user -> {
-                user.setName(dto.getName());
-                user.setEmail(dto.getEmail());
-                return userRepository.save(user);
-            }).doOnTerminate(() -> lockManager.releaseLock(dto.getName()));
-        } else {
-            throw new IllegalStateException("Conflict");
-        }
+        LockManager.Lock lock = lockManager.tryLock(dto.getName());
+        return userRepository.findById(id).flatMap(user -> {
+            user.setName(dto.getName());
+            user.setEmail(dto.getEmail());
+            return userRepository.save(user);
+        }).doOnTerminate(lock::release);
     }
 
     public Flux<User> findAll() {

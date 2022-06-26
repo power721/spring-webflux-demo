@@ -6,10 +6,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -23,6 +20,12 @@ public class UserRepository {
         return Mono.fromCallable(() -> {
             if (user.getId() == null) {
                 user.setId(id.incrementAndGet());
+            }
+
+            try {
+                Thread.sleep(ThreadLocalRandom.current().nextInt(500));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
 
             store.put(user.getId(), user);
